@@ -33,7 +33,7 @@ except:
     usepbar = 0
 
 # Verbose level
-QUIET = 20
+QUIET = 0
 
 # these come from AN2606
 chip_ids = {
@@ -46,6 +46,7 @@ chip_ids = {
     0x416: "STM32 Medium-density ultralow power line",
     0x411: "STM32F2xx",
     0x413: "STM32F4xx",
+    0x11103: "BlueNRG"
 }
 
 def mdebug(level, message):
@@ -59,12 +60,12 @@ class CmdException(Exception):
 class CommandInterface:
     extended_erase = 0
 
-    def open(self, aport='/dev/tty.usbserial-ftCYPMYJ', abaudrate=115200) :
+    def open(self, aport, abaudrate=115200) :
         self.sp = serial.Serial(
             port=aport,
             baudrate=abaudrate,     # baudrate
             bytesize=8,             # number of databits
-            parity=serial.PARITY_EVEN,
+            parity=serial.PARITY_NONE,
             stopbits=1,
             xonxoff=0,              # don't enable software flow control
             rtscts=0,               # don't enable RTS/CTS flow control
@@ -238,7 +239,7 @@ class CommandInterface:
             self.sp.write(chr(0x00))
             tmp = self.sp.timeout
             self.sp.timeout = 30
-            print "Extended erase (0x44), this can take ten seconds or more"
+            print("Extended erase (0x44), this can take ten seconds or more")
             self._wait_for_ask("0x44 erasing failed")
             self.sp.timeout = tmp
             mdebug(10, "    Extended Erase memory done")
@@ -294,7 +295,7 @@ class CommandInterface:
         if usepbar:
             widgets = ['Reading: ', Percentage(),', ', ETA(), ' ', Bar()]
             pbar = ProgressBar(widgets=widgets,maxval=lng, term_width=79).start()
-        
+
         while lng > 256:
             if usepbar:
                 pbar.update(pbar.maxval-lng)
@@ -316,7 +317,7 @@ class CommandInterface:
         if usepbar:
             widgets = ['Writing: ', Percentage(),' ', ETA(), ' ', Bar()]
             pbar = ProgressBar(widgets=widgets, maxval=lng, term_width=79).start()
-        
+
         offs = 0
         while lng > 256:
             if usepbar:
@@ -337,12 +338,12 @@ class CommandInterface:
 
 
 
-	def __init__(self) :
+    def __init__(self) :
         pass
 
 
 def usage():
-    print """Usage: %s [-hqVewvr] [-l length] [-p port] [-b baud] [-a addr] [-g addr] [file.bin]
+    print("""Usage: %s [-hqVewvr] [-l length] [-p port] [-b baud] [-a addr] [-g addr] [file.bin]
     -h          This help
     -q          Quiet
     -V          Verbose
@@ -358,16 +359,16 @@ def usage():
 
     ./stm32loader.py -e -w -v example/main.bin
 
-    """ % sys.argv[0]
+    """ % sys.argv[0])
 
 
 if __name__ == "__main__":
-    
+
     # Import Psyco if available
     try:
         import psyco
         psyco.full()
-        print "Using Psyco..."
+        print("Using Psyco...")
     except ImportError:
         pass
 
@@ -382,13 +383,11 @@ if __name__ == "__main__":
             'go_addr':-1,
         }
 
-# http://www.python.org/doc/2.5.2/lib/module-getopt.html
-
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hqVewvrp:b:a:l:g:")
-    except getopt.GetoptError, err:
+    except(getopt.GetoptError, err):
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print(str(err)) # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
 
@@ -430,7 +429,7 @@ if __name__ == "__main__":
         try:
             cmd.initChip()
         except:
-            print "Can't init. Ensure that BOOT0 is enabled and reset device"
+            print("Can't init. Ensure that BOOT0 is enabled and reset device")
 
 
         bootversion = cmd.cmdGet()
@@ -455,13 +454,13 @@ if __name__ == "__main__":
         if conf['verify']:
             verify = cmd.readMemory(conf['address'], len(data))
             if(data == verify):
-                print "Verification OK"
+                print("Verification OK")
             else:
-                print "Verification FAILED"
-                print str(len(data)) + ' vs ' + str(len(verify))
+                print("Verification FAILED")
+                print(str(len(data)) + ' vs ' + str(len(verify)))
                 for i in xrange(0, len(data)):
                     if data[i] != verify[i]:
-                        print hex(i) + ': ' + hex(data[i]) + ' vs ' + hex(verify[i])
+                        print(hex(i) + ': ' + hex(data[i]) + ' vs ' + hex(verify[i]))
 
         if not conf['write'] and conf['read']:
             rdata = cmd.readMemory(conf['address'], conf['len'])
@@ -472,4 +471,3 @@ if __name__ == "__main__":
 
     finally:
         cmd.releaseChip()
-
